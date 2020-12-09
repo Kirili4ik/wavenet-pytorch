@@ -1,4 +1,3 @@
-from IPython import display
 from dataclasses import dataclass
 import torch
 from torch import nn
@@ -6,7 +5,8 @@ import torchaudio
 import librosa
 from matplotlib import pyplot as plt
 
-
+import random
+import numpy as np
 
 @dataclass
 class MelSpectrogramConfig:
@@ -25,7 +25,7 @@ class MelSpectrogramConfig:
 
 class MelSpectrogram(nn.Module):
 
-    def __init__(self, config: MelSpectrogramConfig):
+    def __init__(self, config: MelSpectrogramConfig, device):
         super(MelSpectrogram, self).__init__()
 
         self.config = config

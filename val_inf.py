@@ -1,8 +1,11 @@
+import torch.nn.functional as F
 import torch
+from matplotlib import pyplot as plt
 
+import wandb
 
 @torch.no_grad()
-def validate(model, loader, featurizer, mu_law_encoder):
+def validate(model, loader, featurizer, mu_law_encoder, device):
     total_loss = 0
     for el in loader:
         wav = el['audio'].to(device)
@@ -21,7 +24,7 @@ def validate(model, loader, featurizer, mu_law_encoder):
 
 
 @torch.no_grad()
-def inference(model, loader, featurizer, mu_law_encoder):
+def inference(model, loader, featurizer, mu_law_encoder, device):
     for el in loader:
         wav = el['audio'][:, :4096].to(device)
         melspec = featurizer(wav)
@@ -32,6 +35,6 @@ def inference(model, loader, featurizer, mu_law_encoder):
         plt.plot(mu_law_decoder(wav.squeeze().detach().cpu()))
         plt.show()
         plt.plot(mu_law_decoder(new_wav.squeeze().detach().cpu()))
-        plt.show
+        plt.show()
 
         break

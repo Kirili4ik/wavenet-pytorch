@@ -1,6 +1,9 @@
 import torch
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import torchaudio
 import wandb
 
 
@@ -13,8 +16,8 @@ from val_inf import validate, inference
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 5
-    NUM_EPOCHS=7
+    BATCH_SIZE = 1
+    NUM_EPOCHS=1
     set_seed(21)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -22,9 +25,9 @@ if __name__ == '__main__':
 
 
     ### Dataset and loaders
-    my_dataset = MelSpecAudioDataset(csv_path='metadata.csv', transform=tr_transform)
+    my_dataset = MelSpecAudioDataset(root='../dla-ht4/LJSpeech-1.1/',csv_path='metadata.csv', transform=tr_transform)
     my_dataset_size = len(my_dataset)
-    train_len = int(my_dataset_size * 0.8)
+    train_len = int(1) #my_dataset_size * 0.8)
     val_len = my_dataset_size - train_len
     train_set, val_set = torch.utils.data.random_split(my_dataset, [train_len, val_len])
     train_loader = DataLoader(train_set, batch_size=BATCH_SIZE,
@@ -36,10 +39,12 @@ if __name__ == '__main__':
                             num_workers=1, pin_memory=True)
 
     ### Featurizer
-    featurizer = MelSpectrogram(MelSpectrogramConfig()).to(device)
+    featurizer = MelSpectrogram(MelSpectrogramConfig(), device).to(device)
     ### Model
     model = WaveNet(hidden_ch=120, skip_ch=240, num_layers=30, mu=256)
     model = model.to(device)
+    # wandb
+    wandb.init(project='wavenet-pytorch')
     wandb.watch(model)
     print('num of model parameters', count_parameters(model))
     ### Optimizer
@@ -47,8 +52,6 @@ if __name__ == '__main__':
     ### Encoder and decoder for mu-law
     mu_law_encoder = torchaudio.transforms.MuLawEncoding(quantization_channels=256).to(device)
     mu_law_decoder = torchaudio.transforms.MuLawDecoding(quantization_channels=256).to(device)
-
-    wandb.init(project='wavenet-pytorch')
 
     ### Train loop
     for i in tqdm(range(NUM_EPOCHS)):
@@ -72,6 +75,6 @@ if __name__ == '__main__':
             wandb.log({'train_loss':loss.item()})
 
         #torch.save({'model_state_dict': model.state_dict()}, 'epoch_'+str(i))
-        validate(model, val_loader, featurizer, mu_law_encoder)
+        validate(model, train_loader, featurizer, mu_law_encoder, device)
 
-    inference(model, val_loader, featurizer, my_law_encoder)
+    inference(model, val_loader, featurizer, mu_law_encoder, device)
